@@ -14,7 +14,7 @@
     color: #222;
   }
   h1 { font-size: 20px; font-weight: 600; margin-bottom: 24px; }
-  label { font-size: 14px; color: #555; }
+  label { font-size: 20px; color: #555; }
   input[type="range"] { width: 100%; }
   input[type="text"] {
     width: 220px;
@@ -215,6 +215,7 @@ var correctCount = 0;
 var mistakes = [];
 var startTime = 0;
 var timerInterval = null;
+var missedCurrent = false;
 
 function shuffleArr(arr) {
   var a = arr.slice();
@@ -274,6 +275,7 @@ document.getElementById('start-btn').addEventListener('click', function() {
   idx = 0;
   correctCount = 0;
   mistakes = [];
+  missedCurrent = false;
   setupEl.style.display = 'none';
   resultsEl.style.display = 'none';
   quizEl.style.display = 'block';
@@ -290,15 +292,23 @@ function submitAnswer() {
   }
   var p = problems[idx];
   if (normalize(raw) === normalize(p.answer)) {
-    correctCount++;
+    // Correct: only counts toward the "correct" tally if it was right on the first try
+    if (!missedCurrent) correctCount++;
+    missedCurrent = false;
+    idx++;
+    if (idx >= problems.length) {
+      finish();
+    } else {
+      showProblem();
+    }
   } else {
-    mistakes.push(p.infinitive + ' (' + p.pronoun + ', ' + p.tense + ') \u2192 ' + p.answer);
-  }
-  idx++;
-  if (idx >= problems.length) {
-    finish();
-  } else {
-    showProblem();
+    // Incorrect: block advancing, record the mistake once, let them retry
+    if (!missedCurrent) {
+      mistakes.push(p.infinitive + ' (' + p.pronoun + ', ' + p.tense + ') \u2192 ' + p.answer);
+      missedCurrent = true;
+    }
+    errorEl.textContent = 'Incorrect, try again';
+    answerEl.select();
   }
 }
 
