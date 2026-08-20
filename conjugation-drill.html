@@ -93,10 +93,6 @@
     <span id="count-out">20</span>
   </div>
   <div class="checkrow">
-    <input type="checkbox" id="ignore-accents" checked />
-    <label for="ignore-accents">Ignore accents (é = e, í = i, etc.)</label>
-  </div>
-  <div class="checkrow">
     <input type="checkbox" id="shuffle" checked />
     <label for="shuffle">Shuffle order</label>
   </div>
@@ -171,7 +167,6 @@ var countSlider = document.getElementById('count');
 var countOut = document.getElementById('count-out');
 countSlider.addEventListener('input', function() { countOut.textContent = countSlider.value; });
 
-var ignoreAccentsBox = document.getElementById('ignore-accents');
 var shuffleBox = document.getElementById('shuffle');
 
 var editBtn = document.getElementById('edit-list-btn');
@@ -275,7 +270,6 @@ function stripAccents(s) {
 
 function normalize(s) {
   var out = s.trim().toLowerCase();
-  if (ignoreAccentsBox.checked) out = stripAccents(out);
   return out;
 }
 
