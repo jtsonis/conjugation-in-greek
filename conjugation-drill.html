@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Conjugation Speed Drill</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    max-width: 100%;
+    width: 600px;
+    margin: 20px auto;
+    padding: 0 16px;
+    box-sizing: border-box;
+    color: #222;
+  }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 24px; }
+  label { font-size: 14px; color: #555; }
+  input[type="range"] { width: 100%; }
+  input[type="text"] {
+    width: 220px;
+    text-align: center;
+    font-size: 20px;
+    height: 44px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+  }
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    resize: vertical;
+  }
+  button {
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background: #f7f7f7;
+    cursor: pointer;
+  }
+  button:hover { background: #eee; }
+  #submit, #save-list {
+    margin-top: 16px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+  }
+  #submit:hover, #save-list:hover { background: #1d4ed8; }
+  .row { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .row label { min-width: 110px; }
+  .checkrow { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+  .checkrow label { font-size: 14px; color: #333; min-width: 0; }
+  .center { text-align: center; }
+  #problem { font-size: 32px; font-weight: 600; margin-bottom: 6px; }
+  #problem-sub { font-size: 14px; color: #888; margin-bottom: 24px; }
+  #progress, #timer { font-size: 13px; color: #666; }
+  .topbar { display: flex; justify-content: space-between; margin-bottom: 24px; }
+  .error { font-size: 13px; color: #c0392b; min-height: 18px; margin-top: 8px; }
+  .hint { font-size: 12px; color: #888; margin: 4px 0 16px; line-height: 1.5; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: #f5f5f5; border-radius: 8px; padding: 16px; text-align: center; }
+  .stat-card p:first-child { font-size: 13px; color: #666; margin: 0 0 4px; }
+  .stat-card p:last-child { font-size: 22px; font-weight: 600; margin: 0; }
+  .mistakes { display: flex; flex-direction: column; gap: 6px; margin-bottom: 24px; }
+  .mistake-pill {
+    background: #fdecea;
+    color: #c0392b;
+    font-size: 13px;
+    padding: 6px 10px;
+    border-radius: 6px;
+  }
+  #edit-list-btn {
+    margin-bottom: 20px;
+    background: none;
+    border: 1px solid #ccc;
+  }
+</style>
+</head>
+<body>
+
+<h1>Conjugation Speed Drill</h1>
+
+<div id="setup">
+  <div class="row">
+    <label>Problems</label>
+    <input type="range" min="5" max="60" step="5" value="20" id="count" />
+    <span id="count-out">20</span>
+  </div>
+  <div class="checkrow">
+    <input type="checkbox" id="ignore-accents" checked />
+    <label for="ignore-accents">Ignore accents (é = e, í = i, etc.)</label>
+  </div>
+  <div class="checkrow">
+    <input type="checkbox" id="shuffle" checked />
+    <label for="shuffle">Shuffle order</label>
+  </div>
+
+  <button id="edit-list-btn" type="button">Edit conjugation list</button>
+
+  <div id="editor" style="display:none;">
+    <p class="hint">
+      One entry per line, formatted as:<br>
+      <code>infinitive | pronoun | tense | answer</code><br>
+      Example: <code>hablar | yo | presente | hablo</code><br>
+      Replace the placeholder lines below with your own verbs/tenses. Blank lines and lines starting with # are ignored.
+    </p>
+    <textarea id="list-input" rows="14"></textarea>
+    <button id="save-list" type="button">Save list</button>
+  </div>
+
+  <button id="start-btn" style="margin-top:20px;">Start drill</button>
+</div>
+
+<div id="quiz" style="display:none;">
+  <div class="topbar">
+    <span id="progress">1 / 20</span>
+    <span id="timer">0.00s</span>
+  </div>
+  <div class="center">
+    <div id="problem">hablar</div>
+    <div id="problem-sub">yo &middot; presente</div>
+  </div>
+  <div class="center">
+    <input type="text" id="answer" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+  </div>
+  <p id="input-error" class="error"></p>
+  <button id="submit">Submit</button>
+</div>
+
+<div id="results" style="display:none;">
+  <div class="stats">
+    <div class="stat-card"><p>Time</p><p id="res-time">0.00s</p></div>
+    <div class="stat-card"><p>Correct</p><p id="res-correct">0/0</p></div>
+    <div class="stat-card"><p>Avg / problem</p><p id="res-avg">0.00s</p></div>
+  </div>
+  <div id="mistakes-wrap" style="display:none;">
+    <p style="font-size:13px; color:#666; margin:0 0 8px;">Missed</p>
+    <div id="mistakes" class="mistakes"></div>
+  </div>
+  <button id="retry-btn">Try again</button>
+</div>
+
+<script>
+// ---- Default / placeholder conjugation list ----
+// Format per line: infinitive | pronoun | tense | answer
+var DEFAULT_LIST = [
+  "hablar | yo | presente | hablo",
+  "hablar | tú | presente | hablas",
+  "hablar | él | preterite | habló",
+  "comer | nosotros | presente | comemos",
+  "comer | ellos | preterite | comieron",
+  "vivir | yo | imperfecto | vivía",
+  "ser | tú | presente | eres",
+  "estar | yo | preterite | estuve",
+  "tener | ella | presente | tiene",
+  "ir | ustedes | preterite | fueron",
+  "hacer | yo | presente | hago",
+  "poder | nosotros | condicional | podríamos",
+  "querer | yo | futuro | querré",
+  "decir | tú | presente | dices",
+  "poner | yo | preterite | puse"
+].join("\n");
+
+var countSlider = document.getElementById('count');
+var countOut = document.getElementById('count-out');
+countSlider.addEventListener('input', function() { countOut.textContent = countSlider.value; });
+
+var ignoreAccentsBox = document.getElementById('ignore-accents');
+var shuffleBox = document.getElementById('shuffle');
+
+var editBtn = document.getElementById('edit-list-btn');
+var editor = document.getElementById('editor');
+var listInput = document.getElementById('list-input');
+listInput.value = DEFAULT_LIST;
+
+var currentEntries = parseList(DEFAULT_LIST);
+
+editBtn.addEventListener('click', function() {
+  editor.style.display = editor.style.display === 'none' ? 'block' : 'none';
+});
+
+document.getElementById('save-list').addEventListener('click', function() {
+  var parsed = parseList(listInput.value);
+  if (parsed.length === 0) {
+    alert('No valid entries found. Use format: infinitive | pronoun | tense | answer');
+    return;
+  }
+  currentEntries = parsed;
+  editor.style.display = 'none';
+});
+
+function parseList(text) {
+  var lines = text.split('\n');
+  var entries = [];
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (line === '' || line.indexOf('#') === 0) continue;
+    var parts = line.split('|').map(function(s) { return s.trim(); });
+    if (parts.length !== 4) continue;
+    entries.push({
+      infinitive: parts[0],
+      pronoun: parts[1],
+      tense: parts[2],
+      answer: parts[3]
+    });
+  }
+  return entries;
+}
+
+var setupEl = document.getElementById('setup');
+var quizEl = document.getElementById('quiz');
+var resultsEl = document.getElementById('results');
+var problemEl = document.getElementById('problem');
+var subEl = document.getElementById('problem-sub');
+var answerEl = document.getElementById('answer');
+var progressEl = document.getElementById('progress');
+var timerEl = document.getElementById('timer');
+var errorEl = document.getElementById('input-error');
+
+var problems = [];
+var idx = 0;
+var correctCount = 0;
+var mistakes = [];
+var startTime = 0;
+var timerInterval = null;
+
+function shuffleArr(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+  }
+  return a;
+}
+
+function genProblems(n) {
+  var pool = shuffleBox.checked ? shuffleArr(currentEntries) : currentEntries.slice();
+  var list = [];
+  for (var i = 0; i < n; i++) {
+    list.push(pool[i % pool.length]);
+  }
+  if (shuffleBox.checked) list = shuffleArr(list);
+  return list;
+}
+
+function showProblem() {
+  var p = problems[idx];
+  problemEl.textContent = p.infinitive;
+  subEl.textContent = p.pronoun + ' \u00b7 ' + p.tense;
+  progressEl.textContent = (idx + 1) + ' / ' + problems.length;
+  answerEl.value = '';
+  errorEl.textContent = '';
+  answerEl.focus();
+}
+
+function formatTime(seconds) {
+  var parts = seconds.toFixed(2).split('.');
+  return parts[0] + '.' + (parts[1] + '0').slice(0, 2);
+}
+
+function updateTimer() {
+  var elapsed = (Date.now() - startTime) / 1000;
+  timerEl.textContent = formatTime(elapsed) + 's';
+}
+
+function stripAccents(s) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function normalize(s) {
+  var out = s.trim().toLowerCase();
+  if (ignoreAccentsBox.checked) out = stripAccents(out);
+  return out;
+}
+
+document.getElementById('start-btn').addEventListener('click', function() {
+  if (currentEntries.length === 0) {
+    alert('Please add at least one conjugation entry first.');
+    return;
+  }
+  var n = parseInt(countSlider.value, 10);
+  problems = genProblems(n);
+  idx = 0;
+  correctCount = 0;
+  mistakes = [];
+  setupEl.style.display = 'none';
+  resultsEl.style.display = 'none';
+  quizEl.style.display = 'block';
+  startTime = Date.now();
+  timerInterval = setInterval(updateTimer, 50);
+  showProblem();
+});
+
+function submitAnswer() {
+  var raw = answerEl.value;
+  if (raw.trim() === '') {
+    errorEl.textContent = 'Enter an answer first';
+    return;
+  }
+  var p = problems[idx];
+  if (normalize(raw) === normalize(p.answer)) {
+    correctCount++;
+  } else {
+    mistakes.push(p.infinitive + ' (' + p.pronoun + ', ' + p.tense + ') \u2192 ' + p.answer);
+  }
+  idx++;
+  if (idx >= problems.length) {
+    finish();
+  } else {
+    showProblem();
+  }
+}
+
+answerEl.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    submitAnswer();
+  }
+});
+
+answerEl.addEventListener('input', function() {
+  if (errorEl.textContent) errorEl.textContent = '';
+});
+
+document.getElementById('submit').addEventListener('click', function() {
+  submitAnswer();
+});
+
+function finish() {
+  clearInterval(timerInterval);
+  var elapsed = (Date.now() - startTime) / 1000;
+  quizEl.style.display = 'none';
+  resultsEl.style.display = 'block';
+  document.getElementById('res-time').textContent = formatTime(elapsed) + 's';
+  document.getElementById('res-correct').textContent = correctCount + '/' + problems.length;
+  document.getElementById('res-avg').textContent = formatTime(elapsed / problems.length) + 's';
+  var wrap = document.getElementById('mistakes-wrap');
+  var mistakesEl = document.getElementById('mistakes');
+  mistakesEl.innerHTML = '';
+  if (mistakes.length > 0) {
+    wrap.style.display = 'block';
+    mistakes.forEach(function(m) {
+      var span = document.createElement('span');
+      span.className = 'mistake-pill';
+      span.textContent = m;
+      mistakesEl.appendChild(span);
+    });
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+document.getElementById('retry-btn').addEventListener('click', function() {
+  resultsEl.style.display = 'none';
+  setupEl.style.display = 'block';
+});
+</script>
+
+</body>
+</html>
